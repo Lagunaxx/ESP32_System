@@ -1,0 +1,11 @@
+menu "ESP32_System"
+
+config ESP32_SYSTEM_DI
+    bool "Switch on DI"
+    default "y"
+    help
+        This option switches on DI-support.
+
+
+endmenu
+
