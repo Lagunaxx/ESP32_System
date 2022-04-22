@@ -23,6 +23,9 @@
  *********************************************************/
 #ifdef ESP32
 #include <soc/spi_reg.h>
+
+#include "sdkconfig.h"
+
 #ifdef USE_HSPI_PORT
 			#define SPI_PORT HSPI
 		#else
@@ -32,6 +35,24 @@
 
 //#include <pthread.h>
 //#include "esp_pthread.h"
+
+// Add extensions
+#if CONFIG_ESP32_SYSTEM_HW_NETWORK
+#include "Network.h"
+
+#if CONFIG_ESP32_SYSTEM_HW_NETWORK_WIFI
+#include "WiFi.h"
+#endif
+
+#endif /* CONFIG_ESP32_SYSTEM_HW_NETWORK */
+
+
+#if CONFIG_ESP32_SYSTEM_HW_MODBUS_UART
+#include "ModbusUART.h"
+#endif // CONFIG_ESP32_SYSTEM_HW_MODBUS_UART
+#if CONFIG_ESP32_SYSTEM_HW_MODBUS_TCP
+#include "ModbusTCP.h"
+#endif // CONFIG_ESP32_SYSTEM_HW_MODBUS_TCP
 
 
 // Defining default system messages values
@@ -91,6 +112,8 @@
 
 namespace Device {
 namespace Hardware {
+
+// namespace Network {}
 
 typedef struct {
 	uint8_t pin;

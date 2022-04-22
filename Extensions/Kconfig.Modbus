@@ -1,0 +1,138 @@
+        menu "Modbus"
+            
+            config ESP32_SYSTEM_HW_MODBUS_UART
+                bool "Enable Modbus over UART interface"
+                    default "n"
+                    help
+                        Enable modbus over uart interface.
+                        
+            menu "Modbus UART Configuration"
+                depends on ESP32_SYSTEM_HW_MODBUS_UART
+
+                config MB_UART_PORT_NUM
+                    int "UART port number"
+                    range 0 2 if IDF_TARGET_ESP32
+                    default 2 if IDF_TARGET_ESP32
+                    range 0 1 if IDF_TARGET_ESP32S2
+                    default 1 if IDF_TARGET_ESP32S2
+                    help
+                        UART communication port number for Modbus example.
+            
+                config MB_UART_BAUD_RATE
+                    int "UART communication speed"
+                    range 1200 115200
+                    default 115200
+                    help
+                        UART communication speed for Modbus example.
+            
+                config MB_UART_RXD
+                    int "UART RXD pin number"
+                    range 0 34 if IDF_TARGET_ESP32
+                    default 22 if IDF_TARGET_ESP32
+                    range 0 46 if IDF_TARGET_ESP32S2
+                    default 19 if IDF_TARGET_ESP32S2
+                    help
+                        GPIO number for UART RX pin. See UART documentation for more information
+                        about available pin numbers for UART.
+            
+                config MB_UART_TXD
+                    int "UART TXD pin number"
+                    range 0 34 if IDF_TARGET_ESP32
+                    default 23 if IDF_TARGET_ESP32
+                    range 0 46 if IDF_TARGET_ESP32S2
+                    default 20 if IDF_TARGET_ESP32S2
+                    help
+                        GPIO number for UART TX pin. See UART documentation for more information
+                        about available pin numbers for UART.
+            
+                config MB_UART_RTS
+                    int "UART RTS pin number"
+                    range 0 34 if IDF_TARGET_ESP32
+                    range 0 46 if IDF_TARGET_ESP32S2
+                    default 18
+                    help
+                        GPIO number for UART RTS pin. This pin is connected to
+                        ~RE/DE pin of RS485 transceiver to switch direction.
+                        See UART documentation for more information about available pin
+                        numbers for UART.
+            
+                choice MB_COMM_MODE
+                    prompt "Modbus communication mode"
+                    default MB_COMM_MODE_RTU if CONFIG_FMB_COMM_MODE_RTU_EN
+                    help
+                        Selection of Modbus communication mode option for Modbus.
+            
+                    config MB_COMM_MODE_RTU
+                        bool "RTU mode"
+                        depends on FMB_COMM_MODE_RTU_EN
+            
+                    config MB_COMM_MODE_ASCII
+                        bool "ASCII mode"
+                        depends on FMB_COMM_MODE_ASCII_EN
+            
+                endchoice
+            
+                config MB_SLAVE_ADDR
+                    int "Modbus slave address"
+                    range 1 127
+                    default 1
+                    help
+                        This is the Modbus slave address in the network.
+                        It is used to organize Modbus network with several slaves connected into the same segment.
+            
+            
+            endmenu
+                        
+            config ESP32_SYSTEM_HW_MODBUS_TCP
+                
+                bool "Enable Modbus over TCP interface"
+                	depends on ESP32_SYSTEM_HW_NETWORK
+                    default "n"
+                    help
+                        Enable modbus over tcp interface.
+            
+            if ESP32_SYSTEM_HW_NETWORK != y
+            	comment "Enable Modbus over TCP interface (Enable Networking extension for use ModbusTCP)"
+			endif
+			
+            menu "Modbus TCP Configuration"
+                depends on ESP32_SYSTEM_HW_MODBUS_TCP
+
+                menu "Modbus TCP Master Configuration"
+                
+                    choice MB_SLAVE_IP_RESOLVER
+                        prompt "Select method to resolve slave IP addresses"
+                        help
+                                Select method which is used to resolve slave IP addresses
+                                and configure Master TCP IP stack.
+                
+                            config MB_MDNS_IP_RESOLVER
+                                bool "Resolve Modbus slave addresses using mDNS service."
+                
+                            config MB_SLAVE_IP_FROM_STDIN
+                                bool "Configure Modbus slave addresses from stdin"
+                    endchoice
+                
+                endmenu
+                
+                menu "Modbus TCP Slave Configuration"
+                
+                    config MB_SLAVE_ADDR
+                        int "Modbus slave address"
+                        range 1 127
+                        default 1
+                        help
+                            This is the Modbus slave address in the network.
+                            The address is used as an index to resolve slave ip address.
+                
+                    config MB_MDNS_IP_RESOLVER
+                        bool "Resolve slave addresses using mDNS service"
+                        default y
+                        help
+                            This option allows to use mDNS service to resolve IP addresses of the Modbus slaves.
+                            If the option is disabled the ip addresses of slaves are defined in static table.
+                
+                endmenu
+            endmenu            
+            
+        endmenu

@@ -1,11 +1,32 @@
 menu "ESP32_System"
 
-config ESP32_SYSTEM_DI
-    bool "Switch on DI"
-    default "y"
-    help
-        This option switches on DI-support.
+    menu "Netwroking"
+    
+        config ESP32_SYSTEM_HW_NETWORK
+            bool "Enable networking"
+                default "y"
+                help
+                    Enable networking class.
+        
+        rsource "Extensions/Kconfig.WiFi"
+                    
+    endmenu
+    
+    menu "Communication protocols"
+    
+    	rsource "Extensions/Kconfig.Modbus"
+     
+    endmenu
+
+
+    config ESP32_SYSTEM_DI
+        bool "Switch on DI"
+        default "y"
+        help
+            This option switches on DI-support.
 
 
 endmenu
+
+
 

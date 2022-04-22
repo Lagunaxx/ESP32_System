@@ -1,0 +1,13 @@
+        menu "WiFi"
+            depends on ESP32_SYSTEM_HW_NETWORK
+            
+            config ESP32_SYSTEM_HW_NETWORK_WIFI
+                bool "Enable WiFi"
+                    default "n"
+                    help
+                        Enable WiFi functionality.
+                        
+                        
+            
+            
+        endmenu
