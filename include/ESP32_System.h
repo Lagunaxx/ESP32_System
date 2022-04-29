@@ -18,6 +18,12 @@
 #include <SPI.h>
 #include <pgmspace.h>
 
+#include "esp_event.h"
+#include "esp_event_base.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+//#include "projdefs.h"
+
 /*********************************************************
  * Default initialization                                *
  *********************************************************/
@@ -46,6 +52,7 @@
 
 #endif /* CONFIG_ESP32_SYSTEM_HW_NETWORK */
 
+//#include "Extensions/IO.h"
 
 #if CONFIG_ESP32_SYSTEM_HW_MODBUS_UART
 #include "ModbusUART.h"
@@ -113,7 +120,16 @@
 namespace Device {
 namespace Hardware {
 
+enum{
+	DEVICE_HARDWARE_EVENT_DELETE = 1,
+
+	DEVICE_HARDWARE_EVENT_LAST
+};
+
 // namespace Network {}
+enum {
+    TASK_SYSTEM_EVENT                     // raised during an event of the loop within the task
+};
 
 typedef struct {
 	uint8_t pin;
@@ -122,12 +138,25 @@ typedef struct {
 } t_Data;
 
 typedef struct {
-	uint8_t ID;
+	uint8_t id;
 	uint8_t deviceType;
 	uint8_t pin;
 	void * deviceHandler;
 	void (* callbackHandler)(t_Data *);
 } t_Device;
+
+typedef struct {	// when device handling class initiates it mast call static function for registering itself.
+	uint32_t	id;				// id of registered class
+	uint32_t	event_id;		// event-id for registered device handling class (may be '#define ADD_DI 1' (local for every handler-class)
+	esp_event_loop_args_t eventLoopArgs; // register esp_event_loop_args_t for use in esp_event_loop_create(...)
+//	unsigned int	stackSize;	// defines stack size
+	void *		handleClass;	// pointer to handling class. (may be remmove this rule: mast have 'Hardware' as parent class,)
+								// mast implement 'static void handle' function, 'static void loop', and other like 'add' function and etc.
+	void *		eventHandlerArg;// it will be used as 'event_handler_arg' in 'esp_event_handler_instance_register_with' and
+								// mast be used in 'handler' as same to know from what event-system event came.
+	TaskFunction_t fn_loop;
+//	const char* description;	// short description (naming) of class (like "DI", "AO", "WiFi", etc). moving to esp_event_loop_args_t.task_name
+} t_regHW;
 
 /*********************************************************************************
 *	Class:	Hardware
@@ -168,17 +197,72 @@ public:
 	Hardware();
 	virtual ~Hardware();
 
-	void run();		// Run root driver (hwControl())
+	static void handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+//	virtual bool add(uint8_t type, void* data, Hardware* hw_call, esp_event_loop_args_t* return_elArgs); //
+	static void loop(); // Every device works in this loop and calls every handler, who adds this device, when event occures.
+
+	static void init(); // Initialize static variables
+
+	static void HWDriver(); // This driver will run all hw-loops
+
+
+
+/*	void run();		// Run root driver (hwControl())
 	uint8_t addDI(uint8_t pin, void callbackHandler(t_Data*));	// Add new DI device
 	uint8_t addAI(uint8_t pin, void callbackHandler(t_Data*));	// Add new AI device
-	virtual uint8_t msg(uint8_t deviceID, uint8_t msg, void * payload); // Send data to device
 
-protected:
+
+	virtual uint8_t msg(uint8_t deviceID, uint8_t msg, void * payload); // Send data to device
+*/
+//protected:
+
+	 uint32_t	registerType(t_regHW* reg);		/* Register device's handler class.
+													* Device class mast initialize 'reg' and it mast be
+													* available due device's handler class works.
+													* When device's handler class destroys - it mast call
+													* removing function of Hardware, where reg will be freed.
+													*/
+
+
+
+private:
+	 uint32_t	numberOfHandlerClasses,		// Number of registered handler classes
+					maxNumberOfHandlerClasses; // Maximum of above
+	 t_regHW**	HandlerClasses;					// Place for storing handler classes
+
+
+
+
+// ToDo: this used in Device driver (handler) to register callbacks and call them when device-event happened.
+/*	Hardware** hw_recall;						// Store pointers for every registered callback-class (callback class mast have function handler()
+	uint16_t	numberOfHWRecall = 0,			// Number of registered classes with callback function
+				Max_numberOfHWRecall = 65530;	// Maximum number of classes to register
+
+
+
+
+
 
 	uint8_t hwControl();
 
 	t_Device *Devices;
+
+
+	ESP_EVENT_DEFINE_BASE(TASK_EVENTS);
+
+	static void event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+	esp_event_loop_handle_t event_loop_handler;
+	esp_event_loop_args_t event_args = { // @suppress("Invalid arguments")
+	        .queue_size = 15,
+	        .task_name = "ESP32_System handler",
+	        .task_priority = uxTaskPriorityGet(NULL), // @suppress("Ambiguous problem")
+	        .task_stack_size = 2048,
+	        .task_core_id = tskNO_AFFINITY
+	};
+// */
 };
+
+
 
 extern Hardware* Bus;
 bool init();

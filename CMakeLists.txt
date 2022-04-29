@@ -21,23 +21,20 @@ set(CORE_SRCS
 #  )
 
 set(EXT_SRCS
+  Extensions/IO.cpp
   Extensions/ModbusTCP.cpp
   Extensions/ModbusUART.cpp
   Extensions/Network.cpp
+  Extensions/Network/wifi/WiFi.cpp
   )
   
- set(TMP_SRC
-   Extensions/stdin_out.cpp
-   )
-#  Extensions/Font/Fonts/Font16.c
-#  Extensions/Font/Fonts/Font32rle.c
-#  Extensions/Font/Fonts/Font64rle.c
-#  Extensions/Font/Fonts/Font72rle.c
-#  Extensions/Font/Fonts/Font72x53rle.c
-#  Extensions/Font/Fonts/Font7srle.c
-#  Extensions/Font/Fonts/glcdfont.c
-#  )
+set(TMP_SRC
+  Extensions/stdin_out.cpp
+  )
 
+set(EXT_INCL
+  Extensions/Network/wifi
+  )
 #set(EXT_MODBUS_SRCS
 #  $ENV{IDF_PATH}/components/freemodbus/port/port.c
 #  )
@@ -52,6 +49,7 @@ set(includedirs
 #  $ENV{IDF_PATH}/components/freemodbus/port
 #  $ENV{IDF_PATH}/components/freemodbus/tcp_master/modbus_controller
   .
+  ${EXT_INCL}
   )
   
 #  Extensions/Font/Fonts/Custom
