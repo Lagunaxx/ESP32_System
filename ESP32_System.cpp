@@ -52,6 +52,10 @@ bool init(){
 	return true;
 }
 
+ /***************************************************************************************
+ ** Function name:			Hardware
+ ** Description :			Constructor
+ ***************************************************************************************/
 
 Hardware::Hardware() {
 //	esp_err_t tmp_result;
@@ -60,6 +64,7 @@ Hardware::Hardware() {
 
 	numberOfHandlerClasses = 0;
 	maxNumberOfHandlerClasses = 2147483640;
+	HandlerClasses = NULL;
 
 	// ToDo: remove. test purpose:
 /*
@@ -73,16 +78,7 @@ Hardware::Hardware() {
 	BaseType_t tmp_result = xTaskCreate((TaskFunction_t)(&loop), "HWARE TASK", event_args.task_stack_size, NULL, uxTaskPriorityGet(NULL), NULL); // @suppress("Invalid arguments") // @suppress("Field cannot be resolved")
 //	*/
 	// older tests:
-/*	Devices=new(t_Device[40]);
-	if(Devices){
-		for(uint8_t id=0; id<40; id++) {
-			Devices[id].id = id;
-			Devices[id].callbackHandler = 0;
-			Devices[id].deviceHandler = 0;
-			Devices[id].deviceType = HW_TYPE_NOP;
-			Devices[id].pin = GPIO_NOTDEFINED;
-		}
-	}
+/*
 
 	hw_recall=(Hardware **)malloc(sizeof(unsigned int) * Max_numberOfHWRecall);
 
@@ -101,11 +97,15 @@ Hardware::Hardware() {
 // */
 }
 
-void Hardware::init(){
+//void Hardware::init(){
 //	uint32_t numberOfHandlerClasses = 0;
 //	uint32_t maxNumberOfHandlerClasses = 2147483640;
-}
+//}
 
+/***************************************************************************************
+** Function name:			~Hardware
+** Description :			Destructor
+***************************************************************************************/
 Hardware::~Hardware() {
 	// TODO Auto-generated destructor stub
 //	if(Devices)delete(Devices);
@@ -125,63 +125,46 @@ Hardware::~Hardware() {
 ***************************************************************************************/
 uint32_t Hardware::registerType(t_regHW* reg) {
 	if (numberOfHandlerClasses >= maxNumberOfHandlerClasses) {
-		ESP_LOGE(SYSTEM_TAG,"registerType: Can't add callback handler. Maximum reached!"); // @suppress("Invalid arguments")
+		ESP_LOGE(SYSTEM_TAG,"Hardware::registerType: Can't add callback handler. Maximum reached!"); // @suppress("Invalid arguments")
 		return 0;
 	}
 	if(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) < (sizeof(t_regHW*) * (numberOfHandlerClasses + 1))){ // check if enough free space
-		ESP_LOGE(SYSTEM_TAG,"registerType: RAM is out! %u < %u (%u / %u) ",
-				heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
-				(sizeof(t_regHW*) * (numberOfHandlerClasses + 1)),
-				sizeof(t_regHW*),
-				(numberOfHandlerClasses + 1)); // @suppress("Invalid arguments")
+		ESP_LOGE(SYSTEM_TAG,"Hardware::registerType: RAM is out! %u < %u (%u / %u) ",	heap_caps_get_free_size(MALLOC_CAP_INTERNAL), // @suppress("Invalid arguments")
+				(sizeof(t_regHW*) * (numberOfHandlerClasses + 1)), sizeof(t_regHW*), (numberOfHandlerClasses + 1)); // @suppress("Invalid arguments")
 		return 0;
 	}
-/*Serial.printf("registerType: %u < %u (%u / %u) ",
-heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
-(sizeof(t_regHW*) * (numberOfHandlerClasses + 1)),
-sizeof(t_regHW*),
-(numberOfHandlerClasses + 1));*/
-	if (!numberOfHandlerClasses){
-//Serial.printf(" handler not registered!\n");
+ESP_LOGD(SYSTEM_TAG,"Hardware::registerType: %u < %u (%u / %u) ", heap_caps_get_free_size(MALLOC_CAP_INTERNAL), // @suppress("Invalid arguments")
+			(sizeof(t_regHW*) * (numberOfHandlerClasses + 1)), sizeof(t_regHW*), (numberOfHandlerClasses + 1));
+	if (!HandlerClasses){ //numberOfHandlerClasses){
 		HandlerClasses = (t_regHW**)malloc(sizeof(t_regHW*));
 	}else{
-//Serial.printf(" handler registered!\n");
 		HandlerClasses = (t_regHW**)realloc(HandlerClasses, sizeof(t_regHW*) * (numberOfHandlerClasses + 1));
 	}
-//Serial.printf("allocated \n");
 	HandlerClasses[numberOfHandlerClasses] = reg;
-//Serial.printf("moved \n");
 
 	esp_event_loop_handle_t loop_task;
-//Serial.printf("loop_task \n");
-
-	esp_event_loop_create(&reg->eventLoopArgs, &loop_task);// ToDo: make device-driver-loop() function &((Hardware(*)(void))((Hardware*) reg->handleClass)->loop));
-//Serial.printf("loop_task created\n");
-
+	esp_event_loop_create(&reg->eventLoopArgs, &loop_task);
 	esp_event_handler_instance_register_with(loop_task, reg->eventLoopArgs.task_name, DEVICE_HARDWARE_EVENT_DELETE, (esp_event_handler_t)(((Hardware *)reg->handleClass)->handler), reg->eventHandlerArg, NULL);
-//Serial.printf("loop_task registered\n");
 
-	BaseType_t tmp_result = xTaskCreate(reg->fn_loop, reg->eventLoopArgs.task_name, reg->eventLoopArgs.task_stack_size, NULL, uxTaskPriorityGet(NULL), NULL); // @suppress("Invalid arguments") // @suppress("Field cannot be resolved")
+	BaseType_t tmp_result = xTaskCreate(reg->fn_loop, reg->eventLoopArgs.task_name, reg->eventLoopArgs.task_stack_size, reg->handleClass, uxTaskPriorityGet(NULL), NULL); // @suppress("Invalid arguments") // @suppress("Field cannot be resolved")
 	//BaseType_t tmp_result = xTaskCreatePinnedToCore((((Hardware*)reg->handleClass)->loop()), reg->eventLoopArgs.task_name, reg->eventLoopArgs.task_stack_size, NULL, uxTaskPriorityGet(NULL), NULL, 0); // last 0 (mean core0) may be 1 (for core1) or tskNO_AFFINITY (any core)
-//Serial.printf("loop_task started reg=%u, handler[]=%u\n", (unsigned int) reg, (unsigned int) HandlerClasses[0]);
 
 	if (tmp_result == pdPASS){
 		numberOfHandlerClasses++;
 		uint32_t tmp_id = 0;
 		uint tmp_min = 1;
-//Serial.printf("running loop \n");
+
 		while((tmp_id <= maxNumberOfHandlerClasses) && (tmp_id < numberOfHandlerClasses)) {
 			tmp_id++;
-//Serial.printf("running loop %u / %u \n", tmp_id, numberOfHandlerClasses);
 			if(HandlerClasses[(tmp_id-1)]->id == tmp_min) {tmp_min++; tmp_id = 0;}
 		}
-//Serial.printf("ending loop \n");
+
 		reg->id = tmp_min;
-		ESP_LOGI(SYSTEM_TAG,"registerType: Task created %s", reg->eventLoopArgs.task_name); // @suppress("Invalid arguments") // @suppress("Field cannot be resolved")
+		ESP_LOGI(SYSTEM_TAG,"Hardware::registerType: Task created %s", reg->eventLoopArgs.task_name); // @suppress("Invalid arguments") // @suppress("Field cannot be resolved")
 		return reg->id; // task created
 	}
 
-	ESP_LOGE(SYSTEM_TAG,"registerType: Can't register device '%s'! %s", reg->eventLoopArgs.task_name, esp_err_to_name(tmp_result)); // @suppress("Invalid arguments") // @suppress("Field cannot be resolved")
+	ESP_LOGE(SYSTEM_TAG,"Hardware::registerType: Can't register device '%s'! %s", reg->eventLoopArgs.task_name, esp_err_to_name(tmp_result)); // @suppress("Invalid arguments") // @suppress("Field cannot be resolved")
 	return 0;
 
 
@@ -229,63 +212,7 @@ bool Hardware::add(uint8_t  type, void* data,Hardware* hw_call, esp_event_loop_a
 
 
 
-/***************************************************************************************
-** Function name:			add
-** Description :			initializes new device (pin)
-** Args:
-**			arg1 - value
-**
-** Return:	id, or 0 if error
-***************************************************************************************/
-/*uint8_t Hardware::addDI(uint8_t pin, void callbackHandler(t_Data*)) {
-	uint8_t id=0;
 
-	if (!callbackHandler) return 0; // check for null-pointer
-
-	while (id<40) {
-		if (Devices[id].pin == pin) return 0; // if pin initialized then exit
-		id++;
-	}
-
-	id = 0;
-	while (true) {
-		if (Devices[id].pin == GPIO_NOTDEFINED)break;
-		id++;
-		if(id == 40) return 0; // all pins are buizy
-	}
-
-	Devices[id].pin = pin;
-	Devices[id].deviceType = HW_TYPE_DI;
-	Devices[id].callbackHandler = callbackHandler;
-	pinMode(pin, INPUT);
-
-	return id;
-}
-uint8_t Hardware::addAI(uint8_t pin, void callbackHandler(t_Data*)) {
-	uint8_t id=0;
-
-	if (!callbackHandler) return 0; // check for null-pointer
-
-	while (id<40) {
-		if (Devices[id].pin == pin) return 0; // if pin initialized then exit
-		id++;
-	}
-
-	id = 0;
-	while (true) {
-		if (Devices[id].pin == GPIO_NOTDEFINED)break;
-		id++;
-		if(id == 40) return 0; // all pins are buizy
-	}
-
-	Devices[id].pin = pin;
-	Devices[id].deviceType = HW_TYPE_AI;
-	Devices[id].callbackHandler = callbackHandler;
-	pinMode(pin, INPUT);
-
-	return id;
-}
-// */
 /***************************************************************************************
 ** Function name:			run
 ** Description :			loop-task for handle work of Bus
@@ -347,3 +274,11 @@ void Hardware::event_handler(void *event_handler_arg, esp_event_base_t event_bas
 */
 } /* namespace Hardware */
 } /* namespace Device */
+
+
+/***************************************************************************************
+** Function name:			name
+** Description :			desc
+** Args:
+**			arg1 - value
+***************************************************************************************/

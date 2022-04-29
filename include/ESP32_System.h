@@ -201,15 +201,13 @@ public:
 //	virtual bool add(uint8_t type, void* data, Hardware* hw_call, esp_event_loop_args_t* return_elArgs); //
 	static void loop(); // Every device works in this loop and calls every handler, who adds this device, when event occures.
 
-	static void init(); // Initialize static variables
+//	static void init(); // Initialize static variables
 
-	static void HWDriver(); // This driver will run all hw-loops
+//	static void HWDriver(); // This driver will run all hw-loops
 
 
 
 /*	void run();		// Run root driver (hwControl())
-	uint8_t addDI(uint8_t pin, void callbackHandler(t_Data*));	// Add new DI device
-	uint8_t addAI(uint8_t pin, void callbackHandler(t_Data*));	// Add new AI device
 
 
 	virtual uint8_t msg(uint8_t deviceID, uint8_t msg, void * payload); // Send data to device
@@ -239,13 +237,8 @@ private:
 				Max_numberOfHWRecall = 65530;	// Maximum number of classes to register
 
 
-
-
-
-
 	uint8_t hwControl();
 
-	t_Device *Devices;
 
 
 	ESP_EVENT_DEFINE_BASE(TASK_EVENTS);

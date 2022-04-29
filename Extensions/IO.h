@@ -18,7 +18,16 @@ public:
 	class_IO();
 	virtual ~class_IO();
 
-	static void _loop(void *); // main loop of IO
+	static void IO_loop(void * args); // main loop of IO
+
+	uint8_t addDI(uint8_t pin, void callbackHandler(t_Data*));	// Add new DI device
+	uint8_t addAI(uint8_t pin, void callbackHandler(t_Data*));	// Add new AI device
+
+private:
+
+	t_Device *Devices;
+
+	unsigned int delay; // Delay between reading data
 
 };
 
